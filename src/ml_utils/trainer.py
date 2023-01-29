@@ -6,17 +6,19 @@ import torchvision
 import torch.nn as nn
 import numpy as np
 from time import time
-from typing import Callable, Tuple, List
-from torch.utils.data import DataLoader, Dataset
+from typing import Callable, Tuple
+from torch.utils.data import DataLoader
 from torch.utils.data import random_split
 from math import sqrt, ceil, floor
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 from torchvision.models import resnet18
 
+
 class Trainer:
     """Trainer Class
     """
+
     def __init__(
         self,
         model: torch.nn.Module,
@@ -34,7 +36,8 @@ class Trainer:
         self.valid_data = valid_data
         self.loss_func = loss_func
         self.optimizer = optimizer
-        self.scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.98, last_epoch=-1, verbose=False)
+        self.scheduler = torch.optim.lr_scheduler.ExponentialLR(
+            optimizer, 0.98, last_epoch=-1, verbose=False)
         # Hours to seconds, training will stop at this time
         self.max_run_time = max_run_time * 60**2
         self.save_path = "training_saves/" + snapshot_name
@@ -53,7 +56,7 @@ class Trainer:
         if self.train_loss_history:
             self.train_loss = self.train_loss_history[-1]
             self.valid_loss = self.valid_loss_history[-1]
-            
+
     def _load_snapshot(self, snapshot_path):
         loc = "cuda:0"
         snapshot = torch.load(snapshot_path, map_location=loc)
@@ -125,7 +128,8 @@ class Trainer:
             "LOWEST_LOSS": self.lowest_loss
         }
         torch.save(snapshot, self.save_path)
-        print(f"Training snapshot saved after Epoch: {self.epochs_run} | save_name: {self.save_path}")
+        print(
+            f"Training snapshot saved after Epoch: {self.epochs_run} | save_name: {self.save_path}")
 
     def train(self):
         for _ in range(self.epochs_run, self.epochs_run + 1000):
@@ -152,272 +156,29 @@ class Trainer:
 
         # Saving import metrics to analyze training on local machine
         train_metrics = {
-                "EPOCHS_RUN": self.epochs_run,
-                "RUN_TIME": self.run_time,
-                "TRAIN_HISTORY": self.train_loss_history,
-                "VALID_HISTORY": self.valid_loss_history,
-                "EPOCH_TIMES": self.epoch_times,
-                "LOWEST_LOSS": self.lowest_loss
+            "EPOCHS_RUN": self.epochs_run,
+            "RUN_TIME": self.run_time,
+            "TRAIN_HISTORY": self.train_loss_history,
+            "VALID_HISTORY": self.valid_loss_history,
+            "EPOCH_TIMES": self.epoch_times,
+            "LOWEST_LOSS": self.lowest_loss
         }
         torch.save(train_metrics, self.save_path[:-3] + "_metrics.pt")
-            
 
-class MNIST_model(torch.nn.Module):
-    def __init__(self, n_classes=10):
-        super(MNIST_model, self).__init__()
-        self.encoder = nn.Sequential(
-            nn.Conv2d(in_channels=1  , out_channels=32 , kernel_size=3, stride=1), nn.BatchNorm2d(32) , nn.ReLU(),
-            nn.Conv2d(in_channels=32 , out_channels=48 , kernel_size=3, stride=1), nn.BatchNorm2d(48) , nn.ReLU(),
-            nn.Conv2d(in_channels=48 , out_channels=64 , kernel_size=3, stride=1), nn.BatchNorm2d(64) , nn.ReLU(),
-            nn.Conv2d(in_channels=64 , out_channels=80 , kernel_size=3, stride=1), nn.BatchNorm2d(80) , nn.ReLU(),
-            nn.Conv2d(in_channels=80 , out_channels=96 , kernel_size=3, stride=1), nn.BatchNorm2d(96) , nn.ReLU(),
-            nn.Conv2d(in_channels=96 , out_channels=112, kernel_size=3, stride=1), nn.BatchNorm2d(112), nn.ReLU(),
-            nn.Conv2d(in_channels=112, out_channels=128, kernel_size=3, stride=1), nn.BatchNorm2d(128), nn.ReLU(),
-            nn.Conv2d(in_channels=128, out_channels=144, kernel_size=3, stride=1), nn.BatchNorm2d(144), nn.ReLU(),
-            nn.Conv2d(in_channels=144, out_channels=160, kernel_size=3, stride=1), nn.BatchNorm2d(160), nn.ReLU(),
-        )
-        self.final_conv = nn.Sequential(
-            nn.Conv2d(in_channels=160, out_channels=176, kernel_size=3, stride=1), nn.BatchNorm2d(176), nn.ReLU()
-        )
-        
-        self.classifier = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(11264, n_classes),
-            nn.BatchNorm1d(n_classes)
-        )
-        
-    def forward(self, x):
-        x = self.encoder(x)
-        out = self.final_conv(x)
-        return self.classifier(out)
-    
-# class MNIST_model(torch.nn.Module):
-#     def __init__(self, n_classes=10):
-#         super(MNIST_model, self).__init__()
-#         self.encoder = nn.Sequential(
-#             nn.Conv2d(in_channels=1  , out_channels=32 , kernel_size=3, stride=1), nn.BatchNorm2d(32) , nn.ReLU(),
-#             nn.Conv2d(in_channels=32 , out_channels=48 , kernel_size=3, stride=1), nn.BatchNorm2d(48) , nn.ReLU(),
-#             nn.Conv2d(in_channels=48 , out_channels=64 , kernel_size=3, stride=1), nn.BatchNorm2d(64) , nn.ReLU(),
-#             nn.Conv2d(in_channels=64 , out_channels=80 , kernel_size=3, stride=1), nn.BatchNorm2d(80) , nn.ReLU(),
-#             nn.Conv2d(in_channels=80 , out_channels=96 , kernel_size=3, stride=1), nn.BatchNorm2d(96) , nn.ReLU(),
-#             nn.Conv2d(in_channels=96 , out_channels=112, kernel_size=3, stride=1), nn.BatchNorm2d(112), nn.ReLU(),
-#             nn.Conv2d(in_channels=112, out_channels=128, kernel_size=3, stride=1), nn.BatchNorm2d(128), nn.ReLU(),
-#             nn.Conv2d(in_channels=128, out_channels=144, kernel_size=3, stride=1), nn.BatchNorm2d(144), nn.ReLU(),
-#             nn.Conv2d(in_channels=144, out_channels=160, kernel_size=3, stride=1), nn.BatchNorm2d(160), nn.ReLU(),
-#             nn.Conv2d(in_channels=160, out_channels=176, kernel_size=3, stride=1), nn.BatchNorm2d(176), nn.ReLU()
-#         )
-#         self.classifier = nn.Sequential(
-#             nn.Flatten(),
-#             nn.Linear(11264, n_classes),
-#             nn.BatchNorm1d(n_classes)
-#         )
-        
-#     def forward(self, x):
-#         x = self.encoder(x)
-#         return self.classifier(x)
 
-    
-class MNIST_model_modified(torch.nn.Module):
-    def __init__(self, n_classes=10):
-        super(MNIST_model_modified, self).__init__()
-        self.encoder = nn.Sequential(
-            nn.Conv2d(in_channels=1  , out_channels=32 , kernel_size=3, stride=1), nn.BatchNorm2d(32) , nn.ReLU(),
-            nn.Conv2d(in_channels=32 , out_channels=48 , kernel_size=3, stride=1), nn.BatchNorm2d(48) , nn.ReLU(),
-            nn.Conv2d(in_channels=48 , out_channels=64 , kernel_size=3, stride=1), nn.BatchNorm2d(64) , nn.ReLU(),
-            nn.Conv2d(in_channels=64 , out_channels=80 , kernel_size=3, stride=1), nn.BatchNorm2d(80) , nn.ReLU(),
-            nn.Conv2d(in_channels=80 , out_channels=96 , kernel_size=3, stride=1), nn.BatchNorm2d(96) , nn.ReLU(),
-            nn.Conv2d(in_channels=96 , out_channels=112, kernel_size=3, stride=1), nn.BatchNorm2d(112), nn.ReLU(),
-            nn.Conv2d(in_channels=112, out_channels=128, kernel_size=3, stride=1), nn.BatchNorm2d(128), nn.ReLU(),
-            nn.Conv2d(in_channels=128, out_channels=144, kernel_size=3, stride=1), nn.BatchNorm2d(144), nn.ReLU(),
-            nn.Conv2d(in_channels=144, out_channels=160, kernel_size=3, stride=1), nn.BatchNorm2d(160), nn.ReLU(),
-        )
-        self.final_conv = nn.Sequential(
-            nn.Conv2d(in_channels=160, out_channels=176, kernel_size=3, stride=1), nn.BatchNorm2d(176), nn.ReLU()
-        )
-        
-        self.classifier = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(11264, n_classes),
-            nn.BatchNorm1d(n_classes)
-        )
-        
-        
-class gradcam_model(torch.nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.layer1 = nn.Sequential(
-            nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(5, 5), stride=1, bias=False),
-            nn.BatchNorm2d(32),
-            nn.ReLU(inplace=True)
-        )
-        self.layer2 = nn.Sequential(
-            nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(5, 5), stride=1, bias=False),
-            nn.BatchNorm2d(64),
-            nn.ReLU(inplace=True)
-        )
-        self.classifier = nn.Sequential(
-            nn.MaxPool2d(kernel_size=7, stride=2, padding=3),
-            nn.Dropout(p=0.2),
-            nn.Flatten(),
-            nn.Linear(6400, 128, bias=True),
-            nn.Dropout(p=0.2),
-            nn.Linear(128, 10, bias=True)
-        )
-        
-    def forward(self, x):
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.classifier(x)
-        return x
+def print_classification_model_test(model: torch.nn.Module,
+                                    test_loader: DataLoader,
+                                    labels_map: dict,
+                                    loss_func: Callable = F.cross_entropy
+                                    ) -> None:
+    """Prints out model testing stats, only works on classificiation models
 
-    
-class Identity(nn.Module):
-    def __init__(self):
-        super(Identity, self).__init__()
-        
-    def forward(self, x):
-        return x
-    
-    
-def resnet_model_modified():
-    model = resnet18()
-    model.conv1 = nn.Conv2d(1, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
-    model.fc = nn.Linear(in_features=64, out_features=10, bias=True)
-    model.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1, dilation=1, ceil_mode=False)
-    model.layer1 = nn.Sequential(
-          nn.Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False),
-          nn.BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
-          nn.ReLU(inplace=True),
-          nn.Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False),
-          nn.BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
-    )
-    model.layer2 = Identity()
-    model.layer3 = Identity()
-    model.layer4 = Identity()
-    return model
-
-    
-class Custom_MNIST_Dataset(Dataset):
-    def __init__(self, sliced_dataset: List[Tuple[torch.Tensor, int]]):
-        self.sliced_dataset = sliced_dataset
-        
-    def __len__(self):
-        return len(self.sliced_dataset)
-    
-    def __getitem__(self, index):
-        return self.sliced_dataset[index]
-    
-            
-def create_train_objs(learning_rate: float = 0.001) -> Tuple[torch.nn.Module, Callable, torch.optim.Optimizer]:
-    """Used to instantiate 3 training objects. Model, loss_func, and Optimizer
-    Returns:
-        Tuple[torch.nn.Module, Callable, torch.optim.Optimizer]: 
-        tuple of model, Loss Function, and Optimizer
-    """
-    model = gradcam_model()
-    loss_func = F.cross_entropy
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    return model, loss_func, optimizer
-    
-    
-def create_dataloaders_MNIST(batch_size: int) -> Tuple[DataLoader, DataLoader, DataLoader]:
-    """Used to instantiate 2 Dataloaders training.
     Args:
-        batch_size (int): batch size of each device
-    Returns:
-        Tuple[DataLoader, DataLoader, DataLoader]: tuple of training, validation, and test dataloaders
+        model (torch.nn.Module): model to be tested
+        test_loader (DataLoader): test data
+        labels_map (dict): dictionary map from class index to class name
+        loss_func (Callable, optional): loss func. Defaults to F.cross_entropy.
     """
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
-        # transforms.RandomAffine(20, translate=(0.20,0.20))
-    ])
-
-    train_dataset = torchvision.datasets.MNIST('.', train=True, transform=transform)
-    
-    train_split = ceil(len(train_dataset) * 0.90)
-    valid_split = floor(len(train_dataset) * 0.10)
-    
-    test_data = torchvision.datasets.MNIST('.', train=False, transform=transform)
-    
-    generator = torch.Generator()
-    generator.manual_seed(42)
-    train_data, valid_data = random_split(
-        train_dataset, [train_split, valid_split], generator=generator)
-
-    train_loader = DataLoader(
-        train_data,
-        batch_size=batch_size,
-        pin_memory=True,  # Allocates samples into page-locked memory, speeds up data transfer to GPU
-        shuffle=True,  
-    )
-
-    valid_loader = DataLoader(
-        valid_data,
-        batch_size=batch_size,
-        pin_memory=True,
-    )
-    
-    test_loader = DataLoader(
-        test_data,
-        batch_size=batch_size,
-        pin_memory=True,
-    )
-    return train_loader, valid_loader, test_loader
-
-
-def create_dataloaders_MNIST_fashion(batch_size: int) -> Tuple[DataLoader, DataLoader, DataLoader]:
-    """Used to instantiate 2 Dataloaders training.
-    Args:
-        batch_size (int): batch size of each device
-        allowed_classes List[int]: allowed classes
-    Returns:
-        Tuple[DataLoader, DataLoader, DataLoader]: tuple of training, validation, and test dataloaders
-    """
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.5,), (0.5,))
-        # transforms.RandomAffine(20, translate=(0.20,0.20))
-    ])
-
-    train_dataset = torchvision.datasets.FashionMNIST('.', train=True, transform=transform)
-    
-    train_split = ceil(len(train_dataset) * 0.90)
-    valid_split = floor(len(train_dataset) * 0.10)
-    
-    test_data = torchvision.datasets.FashionMNIST('.', train=False, transform=transform)
-
-    generator = torch.Generator()
-    generator.manual_seed(42)
-    train_data, valid_data = random_split(
-        train_dataset, [train_split, valid_split], generator=generator)
-
-    train_loader = DataLoader(
-        train_data,
-        batch_size=batch_size,
-        pin_memory=True,  # Allocates samples into page-locked memory, speeds up data transfer to GPU
-        shuffle=True,  
-    )
-
-    valid_loader = DataLoader(
-        valid_data,
-        batch_size=batch_size,
-        pin_memory=True,
-    )
-    
-    test_loader = DataLoader(
-        test_data,
-        batch_size=batch_size,
-        pin_memory=True,
-    )
-    return train_loader, valid_loader, test_loader
-
-
-def print_model_test_stats(model: torch.nn.Module,
-                           test_loader: DataLoader,
-                           labels_map: dict,
-                           loss_func: Callable = F.cross_entropy
-                           ) -> None:
     # initialize lists to monitor test loss and accuracy
     classes_num = 10
     test_loss = 0.0
