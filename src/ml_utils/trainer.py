@@ -2,16 +2,13 @@
 """
 import os
 import torch
-import torchvision
-import torch.nn as nn
 import numpy as np
 from time import time
-from typing import Callable, Tuple
+from typing import Callable
 from torch.utils.data import DataLoader
 from torch.utils.data import random_split
 from math import sqrt, ceil, floor
 import torch.nn.functional as F
-import torchvision.transforms as transforms
 from torchvision.models import resnet18
 
 
